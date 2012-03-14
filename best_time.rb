@@ -60,13 +60,12 @@ class BestTime
     @buckets.each{|k,v| @buckets[k] = v / max }
   end
 
-  # Graph with Google Charts.
-  # Need to customize for tiers.
   def graph
-    labels = buckets.keys.map{|key| @tier[:label].call(key)  }
-    labels = labels.each_with_index.map{|label, i| i % @tier[:step] == 0 ? label : "" }
-    url = "http://chart.apis.google.com/chart?chxt=x,y&chxl=0:|#{labels.join("|")}&chma=40,40,40,40&chbh=a,10&chs=750x400&cht=bvs&chco=A2C180&chds=a&chd=t:#{buckets.values.join(",")}"
-    system("open '#{url}'")
+    rows = buckets.to_a.map{|v| [@tier[:label].call(v[0]), ("%.2f" % v[1]).to_f] }
+    str = File.read("chart.html").gsub("{{rows}}", rows.inspect)
+    filename = "/tmp/chart.html"
+    File.open(filename, "w"){|f| f.write(str) }
+    system("open '#{filename}'")
   end
 
   protected
