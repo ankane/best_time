@@ -21,14 +21,37 @@ class BestTime
       @buckets[hour] = 0
     end
 
+    size = range.max - range.min + 1
+    std = size / 84
+
+    # See how many standard deviations until
+    # we don't care to add the value.
+    p = 1
+    std_range = 0
+    while p > 1e-5
+      std_range += 1
+      p = normal_pdf(0, std_range, std)
+    end
+
     conversions.each do |conversion|
       mean = @tier[:bucket].call(conversion)
-      size = range.max - range.min + 1
-      std = size / 84
-      value = 1 # could be weighted
-      range.each do |key|
-        @buckets[key] += value * (normal_pdf(key, mean, std) + normal_pdf(key + size, mean, std) + normal_pdf(key - size, mean, std))
+      weight = 1 # could be weighted
+
+      # Fast way.
+      rmin = (mean - std_range).floor
+      rmax = (mean + std_range).ceil
+      (rmin..rmax).each do |key|
+        key = key % size
+        value = normal_pdf(key, mean, std)
+        value += normal_pdf(key, mean + size, std) if rmin <= 0
+        value += normal_pdf(key, mean - size, std) if rmax >= size
+        @buckets[key] += weight * value
       end
+
+      # Slow way.
+      #range.each do |key|
+        #@buckets[key] += weight * (normal_pdf(key, mean, std) + normal_pdf(key + size, mean, std) + normal_pdf(key - size, mean, std))
+      #end
     end
 
     # Normalize.
@@ -52,11 +75,14 @@ class BestTime
 
 end
 
-now = Time.now
+now = Time.now - 86400*3 - 3600*2
 conversions = []
-1000.times do
+10_000.times do
   conversions << now + rand(86400*4) - rand(86400*4)
 end
+#conversions = [now]
 
-bt = BestTime.new(conversions, :week)
+require "benchmark"
+bt = nil
+puts Benchmark.realtime { bt = BestTime.new(conversions, :week) }
 bt.graph
