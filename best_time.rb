@@ -4,7 +4,7 @@ class BestTime
   TIERS = {
     week: {
       range: 0...168,
-      bucket: lambda{|time| time.wday*24 + time.hour },
+      bucket: lambda{|time| (time.wday*1440 + time.hour*60 + time.min)/60.0 },
     },
     day: {
       range: 0...96,
