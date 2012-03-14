@@ -24,8 +24,7 @@ class BestTime
     conversions.each do |conversion|
       mean = @tier[:bucket].call(conversion)
       size = range.max - range.min + 1
-      std = size / 24
-      #std = 1e-10
+      std = size / 84
       value = 1 # could be weighted
       range.each do |key|
         @buckets[key] += value * (normal_pdf(key, mean, std) + normal_pdf(key + size, mean, std) + normal_pdf(key - size, mean, std))
@@ -54,11 +53,10 @@ class BestTime
 end
 
 now = Time.now
-conversions = [
-  now,
-  now + 3600,
-  now + 7200
-]
+conversions = []
+1000.times do
+  conversions << now + rand(86400*4) - rand(86400*4)
+end
 
 bt = BestTime.new(conversions, :week)
 bt.graph
