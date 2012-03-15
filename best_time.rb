@@ -34,9 +34,9 @@ class BestTime
     end
 
     conversions.each do |conversion|
-      mean = @tier[:bucket].call(conversion)
-      weight = 1 # could be weighted
+      time, weight = conversion.is_a?(Hash) ? [conversion[:time], conversion[:value]] : [conversion, 1]
 
+      mean = @tier[:bucket].call(time)
       rmin = (mean - std_range).floor
       rmax = (mean + std_range).ceil
       (rmin..rmax).each do |x|
@@ -75,6 +75,11 @@ conversions = []
   conversions << now + rand(86400*3) - rand(86400*3)
 end
 #conversions = [now, now + 86400, now - 86400]
+
+conversions = [
+  {:time => now, :value => 2},
+  {:time => now + 86400, :value => 1}
+]
 
 require "benchmark"
 bt = nil
