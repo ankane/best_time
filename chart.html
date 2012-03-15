@@ -8,20 +8,24 @@
       google.setOnLoadCallback(drawChart);
       function drawChart() {
         var data = new google.visualization.DataTable();
-        data.addColumn("number", "Date");
+        data.addColumn("string", "Date");
         data.addColumn("number", "Performance");
+        data.addColumn({type: "string", role: "tooltip"})
         data.addRows({{rows}});
 
         var options = {
           hAxis: {
             gridlines: {
               color: "#ccc",
-              count: 6
-            }
+              count: 7
+            },
+            showTextEvery: 24
           },
           vAxis: {
             minValue: 0
-          }
+          },
+                 //theme: "maximized"
+chartArea: {left: 100}
         };
 
         var chart = new google.visualization.AreaChart(document.getElementById("chart_div"));
@@ -30,6 +34,6 @@
     </script>
   </head>
   <body>
-    <div id="chart_div" style="width: 900px; height: 500px;"></div>
+    <div id="chart_div" style="width: 1000px; height: 500px;"></div>
   </body>
 </html>

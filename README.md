@@ -12,6 +12,7 @@ conversions = [
 ]
 
 bt = BestTime.new(conversions, :week)
+puts bt.best_time
 puts bt.buckets
 bt.graph
 ```

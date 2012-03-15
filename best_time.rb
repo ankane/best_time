@@ -1,14 +1,16 @@
 class BestTime
-  attr_reader :buckets
+  attr_reader :buckets, :best_time
 
   TIERS = {
     week: {
       range: 0...168,
-      bucket: lambda{|time| (time.wday*1440 + time.hour*60 + time.min)/60.0 }
+      bucket: lambda{|time| (time.wday*1440 + time.hour*60 + time.min)/60.0 },
+      format: lambda{|key| Time.new(2012, 1, (key / 24) + 1, key % 24).strftime("%a %l %P").sub("  ", " ") }
     },
     day: {
-      range: 0..96,
-      bucket: lambda{|time| (time.hour*60 + time.min)/15.0 }
+      range: 0...96,
+      bucket: lambda{|time| (time.hour*60 + time.min)/15.0 },
+      format: lambda{|key| Time.new(2012, 1, 1, (key * 15) / 60, (key * 15) % 60).strftime("%l:%M %P").strip }
     }
   }
 
@@ -44,15 +46,20 @@ class BestTime
       end
     end
 
-    # Normalize.
+    # Normalize and find best bucket.
     max = @buckets.values.max
-    @buckets.each{|k,v| @buckets[k] = v / max }
+    best_bucket = 0
+    @buckets.each do |k,v|
+      @buckets[k] = v / max
+      best_bucket = k if v == max
+    end
+    @best_time = @tier[:format].call(best_bucket)
   end
 
   def graph
     buckets = self.buckets
     buckets[buckets.keys.count] = buckets[0]
-    rows = buckets.to_a #.map{|v| [v[0], ("%.2f" % v[1]).to_f] }
+    rows = buckets.to_a.map{|v| format = @tier[:format].call(v[0]); [format[0..3], v[1], "%s : %.2f" % [format, v[1]]] }
     str = File.read("chart.html").gsub("{{rows}}", rows.inspect)
     filename = "/tmp/chart.html"
     File.open(filename, "w"){|f| f.write(str) }
@@ -72,16 +79,18 @@ end
 now = Time.now + 7*86400 # - 86400*3 - 3600*9
 conversions = []
 10_000.times do
-  conversions << now + rand(86400*3) - rand(86400*3)
+  #conversions << now + rand(86400*3) - rand(86400*3)
+  conversions << now + rand(3600*4) - rand(3600*4)
 end
 #conversions = [now, now + 86400, now - 86400]
 
-conversions = [
-  {:time => now, :value => 2},
-  {:time => now + 86400, :value => 1}
-]
+#conversions = [
+  #{:time => now, :value => 2},
+  #{:time => now + 86400, :value => 1}
+#]
 
 require "benchmark"
 bt = nil
-puts Benchmark.realtime { bt = BestTime.new(conversions, :week) }
+puts Benchmark.realtime { bt = BestTime.new(conversions, :day) }
+puts bt.best_time
 bt.graph
