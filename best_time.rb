@@ -4,10 +4,10 @@ class BestTime
   TIERS = {
     week: {
       range: 0...168,
-      bucket: lambda{|time| (time.wday*1440 + time.hour*60 + time.min)/60.0 },
+      bucket: lambda{|time| (time.wday*1440 + time.hour*60 + time.min)/60.0 }
     },
     day: {
-      range: 0...96,
+      range: 0..96,
       bucket: lambda{|time| (time.hour*60 + time.min)/15.0 }
     }
   }
@@ -21,7 +21,7 @@ class BestTime
       @buckets[hour] = 0
     end
 
-    size = range.max - range.min + 1
+    size = range.max + 1
     std = size / 84
 
     # See how many standard deviations until
@@ -37,21 +37,11 @@ class BestTime
       mean = @tier[:bucket].call(conversion)
       weight = 1 # could be weighted
 
-      # Fast way.
       rmin = (mean - std_range).floor
       rmax = (mean + std_range).ceil
-      (rmin..rmax).each do |key|
-        key = key % size
-        value = normal_pdf(key, mean, std)
-        value += normal_pdf(key, mean + size, std) if rmin <= 0
-        value += normal_pdf(key, mean - size, std) if rmax >= size
-        @buckets[key] += weight * value
+      (rmin..rmax).each do |x|
+        @buckets[x % size] += weight * normal_pdf(x, mean, std)
       end
-
-      # Slow way.
-      #range.each do |key|
-        #@buckets[key] += weight * (normal_pdf(key, mean, std) + normal_pdf(key + size, mean, std) + normal_pdf(key - size, mean, std))
-      #end
     end
 
     # Normalize.
@@ -60,7 +50,9 @@ class BestTime
   end
 
   def graph
-    rows = buckets.to_a.map{|v| [v[0], ("%.2f" % v[1]).to_f] }
+    buckets = self.buckets
+    buckets[buckets.keys.count] = buckets[0]
+    rows = buckets.to_a #.map{|v| [v[0], ("%.2f" % v[1]).to_f] }
     str = File.read("chart.html").gsub("{{rows}}", rows.inspect)
     filename = "/tmp/chart.html"
     File.open(filename, "w"){|f| f.write(str) }
@@ -69,18 +61,20 @@ class BestTime
 
   protected
 
+  SQRT2PI = Math.sqrt(2*Math::PI)
+
   def normal_pdf(x, mean = 0, std = 1)
-    Math.exp(-((x - mean)**2/(2.0*(std**2))))/(Math.sqrt(2*Math::PI)*std)
+    Math.exp(-((x - mean)**2/(2.0*(std**2))))/(SQRT2PI*std)
   end
 
 end
 
-now = Time.now - 86400*3 - 3600*2
+now = Time.now + 7*86400 # - 86400*3 - 3600*9
 conversions = []
 10_000.times do
-  conversions << now + rand(86400*4) - rand(86400*4)
+  conversions << now + rand(86400*3) - rand(86400*3)
 end
-#conversions = [now]
+#conversions = [now, now + 86400, now - 86400]
 
 require "benchmark"
 bt = nil
